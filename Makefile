@@ -1,6 +1,6 @@
-SRC_PATH := ./src/cmd/main.go
+PLAYGROUND_PATH := ./src/cmd/playground/main.go
 
 .PHONE=run-dev
 
 run-dev:
-	go run $(SRC_PATH)
+	go run $(PLAYGROUND_PATH)
