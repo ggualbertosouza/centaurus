@@ -1,31 +1,33 @@
 package centaurus
 
-/*
-Config defines the behavior and limits enforced by a Limiter.
-Config is immutable once passed to NewLimiter.
-*/
-func New(cfg Config) (Limiter, error) {
+// NewLimiter creates a new Limiter based on the provided configuration.
+//
+// The configuration is validated at creation time. If validation fails,
+// an error is returned and no Limiter is created.
+//
+// The provided Config is not retained by the Limiter. Instead, an internal
+// copy is created, ensuring that subsequent modifications to the original
+// Config do not affect the Limiter behavior.
+func NewLimiter(cfg Config) (Limiter, error) {
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	// internalCfg := cfg.clone()
+	// engine initialization will happen here in the future
+
 	return nil, nil
 }
 
-type Config struct {
-	// Algorithm defines which rate limiting algorithm will be used.
-	Algorithm Algorithm
-
-	// Rate defines the steady-state rate (tokens per second, request per second, etc).
-	Rate int64
-
-	// Burst defines the maximum burst size allowed.
-	Burst int64
-
-	// Mode defines the concurrency strategy used internally.
-	Mode ConcurrencyMode
-
-	// Clock allows overriding the time source, primarily for testing.
-	// If nil, a monotonic system clock is used.
-	Clock Clock
-
-	// Metrics allows observing limiter behavior without affecting decision.
-	// If nil, metrics collection is disabled.
-	Metrics MetricsSink
+// Limiter is the main rate limiting interface exposed by Centaurus.
+//
+// Implementations are configured at creation time and must not be mutated
+// after being constructed.
+type Limiter interface {
+	// Allow evaluates whether a given key is allowed to proceed at this time.
+	//
+	// Key represents the identity being rate limited (user, IP, service, etc).
+	// Cost represents the relative cost of the operation (usually 1).
+	// Allow returns a Result describing the decision.
+	Allow(key string, cost int64) Result
 }

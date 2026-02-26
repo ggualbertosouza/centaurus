@@ -2,72 +2,75 @@ package centaurus
 
 import "time"
 
+// Config defines the behavior and limits enforced by a Limiter.
+//
+// Config values are validated at creation time and are treated as immutable
+// by the Limiter. Changes made to the original Config after calling
+// NewLimiter do not affect the behavior of an existing Limiter.
+type Config struct {
+	// Algorithm defines which rate limiting algorithm will be used.
+	Algorithm Algorithm
+
+	// Rate defines the steady-state rate (tokens per second, requests per second, etc).
+	Rate int64
+
+	// Burst defines the maximum burst size allowed.
+	Burst int64
+
+	// Mode defines the concurrency strategy used internally.
+	Mode ConcurrencyMode
+
+	// Clock allows overriding the time source, primarily for testing.
+	// If nil, a monotonic system clock is used.
+	Clock Clock
+
+	// Metrics allows observing limiter behavior without affecting decisions.
+	// If nil, metrics collection is disabled.
+	Metrics MetricsSink
+}
+
+// clone creates a defensive copy of the Config.
+func (c Config) clone() Config {
+	return Config{
+		Algorithm: c.Algorithm,
+		Rate:      c.Rate,
+		Burst:     c.Burst,
+		Mode:      c.Mode,
+		Clock:     c.Clock,
+		Metrics:   c.Metrics,
+	}
+}
+
 // Algorithm defines the rate limiting strategy used by the Limiter.
 type Algorithm int
 
 const (
-	// TokenBucket implements a token bucket rate limiting algorithm.
 	TokenBucket Algorithm = iota
-
-	// Leakybucket implements a leaky bucket rate limiting algorithm.
 	LeakyBucket
-
-	// FixedWindow implements a fixed window rate limiting algorithm.
 	FixedWindow
-
-	// SlidingWindow implements a sliding window rate limiting algorithm.
 	SlidingWindow
 )
 
-// ConcurrenecyMode defines how the Limiter synchronizes access to its internal state.
+// ConcurrencyMode defines how the Limiter synchronizes access to its internal state.
 type ConcurrencyMode int
 
 const (
-	// ModeSingleThread assumes the Limiter is access by a single goroutine.
-	// No synchorization is performed.
 	ModeSingleThread ConcurrencyMode = iota
-
-	// ModeMutex uses mutual exclusion to protect internal state.
-	// This mode is safe for concurrent use and provides predictable behavior.
 	ModeMutex
-
-	// ModeAtomic uses atomic operations for state updates.
-	// This mode provides higher throughput at the cost of increased complexity.
 	ModeAtomic
 )
 
-/*
-Clock provides the current time used by the Limiter.
-Implementations must provide monotonic behavior.
-*/
+// Clock provides the current time used by the Limiter.
+//
+// Implementations must provide monotonic behavior.
 type Clock interface {
 	Now() time.Time
 }
 
-/*
-MetricsSink receives notifications about limiter decisions.
-Implementations must be non-blocking and must not affect limiter behavior.
-*/
+// MetricsSink receives notifications about limiter decisions.
+//
+// Implementations must be non-blocking and must not affect limiter behavior.
 type MetricsSink interface {
 	OnAllow(key string)
 	OnDeny(key string)
-}
-
-/*
-Limiter is the main rate limiting interface exposed by Centaurus.
-
-A Limiter is safe for concurrent use unless explicitly stated otherwise.
-Implementations are configured at creation time and must not be mutated
-after being constructed.
-*/
-type Limiter interface {
-	/*
-		Allow evaluates whether a given key is allowed to proceed ar this time.
-
-		Key represents the identity being rate limited (user, IP, service, etc).
-		cost represents the relative cost of the operation (usually 1)
-
-		Allow returns a Result decribing the decision.
-	*/
-	Allow(key string, cost int64) Result
 }

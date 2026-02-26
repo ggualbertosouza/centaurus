@@ -4,3 +4,6 @@ PLAYGROUND_PATH := ./src/cmd/playground/main.go
 
 run-dev:
 	go run $(PLAYGROUND_PATH)
+
+run-test:
+	go test ./...
